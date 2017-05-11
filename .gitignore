@@ -1,0 +1,11 @@
+*.pyc
+__pycache__/
+.ipynb_checkpoints/
+*.ipynb
+/.cache/
+/.coverage
+/tmp/
+/*.egg-info/
+/log
+.*.swp
+/.idea/
