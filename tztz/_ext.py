@@ -8,7 +8,7 @@ class chained(object):
 
     When the resulting object is called with a single argument, the passed
     object is transformed by passing it through all given functions.
-    For example:
+    For example::
 
         a = chained(
             math.sqrt,
@@ -16,15 +16,15 @@ class chained(object):
             math.cos,
         )(5.0)
 
-    is equivalent to:
+    is equivalent to::
 
         a = 5.0
         a = math.sqrt(a)
         a = math.log(a)
         a = math.cos(a)
 
-    Different chains can be composed via `+`.
-    For example, the chain above can be written as:
+    Different chains can be composed via ``+``.
+    For example, the chain above can be written as::
 
         chained(math.sqrt, math.log) + chained(math.cos)
 
@@ -53,6 +53,11 @@ def _db_chained(rules, chain, obj):
 
 
 class repartition(object):
+    """Express repartition of a ``dask.bag.Bag``, for non bags it is a nop-op.
+
+    :param int n:
+        the number of partitions
+    """
     def __init__(self, n):
         self.n = n
 

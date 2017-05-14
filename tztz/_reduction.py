@@ -12,7 +12,21 @@ class reduction(object):
 
 
 def mean(l):
-    return sum(l) / len(l)
+    """Calculate the mean of a list of values."""
+    l = iter(l)
+
+    s0 = 1
+    try:
+        s1 = next(l)
+
+    except StopIteration:
+        raise RuntimeError('cannot compute the mean of an empty iterable')
+
+    for x in l:
+        s1 += x
+        s0 += 1
+
+    return s1 / s0
 
 
 def var(*args, **kwargs):
