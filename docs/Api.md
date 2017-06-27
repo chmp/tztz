@@ -68,11 +68,13 @@ print(result.compute())
 ```
 
 Since dask also supports distributed executors, computing the result on a
-cluster becomes a matter of simply writing::
+cluster becomes a matter of simply writing:
 
-    from distributed import Client
-    client = Client('127.0.0.1:8786')
-    print(result.compute(get=client.get))
+```python
+from distributed import Client
+client = Client('127.0.0.1:8786')
+print(result.compute(get=client.get))
+```
 
 The DAG primitives that are understood can easily be adapted by specifying the
 ``rules`` argument to [apply](#tztzapply). Out of the box, the following
