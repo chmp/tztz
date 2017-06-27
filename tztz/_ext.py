@@ -23,11 +23,6 @@ class chained(object):
         a = math.log(a)
         a = math.cos(a)
 
-    Different chains can be composed via ``+``.
-    For example, the chain above can be written as::
-
-        chained(math.sqrt, math.log) + chained(math.cos)
-
     """
     def __init__(self, *funcs):
         self.funcs = funcs
