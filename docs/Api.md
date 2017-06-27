@@ -141,3 +141,5 @@ Express repartition of a `dask.bag.Bag`, for non bags it is a nop-op.
 <undocumented>
 
 
+
+[toolz]: http://toolz.readthedocs.io/en/latest/

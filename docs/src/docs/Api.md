@@ -91,3 +91,4 @@ DAG primitives are supported:
 
 .. autofunction:: tztz.var
 
+[toolz]: http://toolz.readthedocs.io/en/latest/
