@@ -1,17 +1,24 @@
+"""Support a small subset of sphinx features in plain markdown files.
+"""
 from __future__ import print_function, division, absolute_import
 
 import importlib
+import inspect
 import logging
 import os
 import os.path
 
 from docutils.core import publish_string
+from docutils.nodes import Element
+from docutils.parsers.rst import roles
 from docutils.writers import Writer
 
 _logger = logging.getLogger(__name__)
 
 
 def main():
+    setup_rst_roles()
+
     self_path = os.path.dirname(__file__)
     docs_dir = os.path.abspath(os.path.join(self_path, '..'))
     src_dir = os.path.abspath(os.path.join(self_path, '..', 'docs', 'src'))
@@ -20,18 +27,34 @@ def main():
         if not fname.endswith('.md'):
             continue
 
-        source = os.path.join(src_dir, fname)
-        target = os.path.join(docs_dir, fname)
+        source = os.path.abspath(os.path.join(src_dir, fname))
+        target = os.path.abspath(os.path.join(docs_dir, fname))
+
+        # NOTE: always generate docs, to include newest docstrings
 
         _logger.info('transform %s -> %s', source, target)
 
         with open(source, 'rt') as fobj:
             content = fobj.read()
 
-        content = transform(content)
+        content = transform(content, source)
 
         with open(target, 'wt') as fobj:
             fobj.write(content)
+
+
+def setup_rst_roles():
+    roles.register_canonical_role('class', rewrite_reference)
+    roles.register_canonical_role('func', rewrite_reference)
+
+
+def rewrite_reference(name, rawtext, text, lineno, inliner, options=None, content=None):
+    # TODO: support titles
+    return [TitledReference(rawtext, reference=text, title=text)], []
+
+
+class TitledReference(Element):
+    pass
 
 
 def relwalk(absroot, relroot='.'):
@@ -49,11 +72,29 @@ def relwalk(absroot, relroot='.'):
             yield from relwalk(abspath, relpath)
 
 
-def transform(content):
+def transform(content, source):
     lines = []
     for line in content.splitlines():
-        if line.startswith('.. autofunction::'):
+        if line.startswith('.. include::'):
+            lines += include(line, source)
+
+        elif line.startswith('.. autofunction::'):
             lines += autofunction(line)
+
+        elif line.startswith('.. autoclass::'):
+            lines += autoclass(line)
+
+        elif line.startswith('.. automethod::'):
+            lines += automethod(line)
+
+        elif line.startswith('.. automodule::'):
+            lines += automodule(line)
+
+        elif line.startswith('.. literalinclude::'):
+            lines += literalinclude(line, source)
+
+        elif line.startswith('..'):
+            raise NotImplementedError('unknown directive: %s' % line)
 
         else:
             lines.append(line)
@@ -62,12 +103,103 @@ def transform(content):
 
 
 def autofunction(line):
-    _, what = line.split('::')
-    obj = import_object(what)
+    return autoobject(line)
 
-    yield '## {}'.format(what)
+
+def automethod(line):
+    return autoobject(line, depth=2, skip_args=1)
+
+
+def autoclass(line):
+    return autoobject(line)
+
+
+def automodule(line):
+    return autoobject(line, header=2, depth=0)
+
+
+def autoobject(line, depth=1, header=3, skip_args=0):
+    _, what = line.split('::')
+
+    if '(' in what:
+        signature = what
+        what, _1, _2 = what.partition('(')
+
+    else:
+        signature = None
+
+    obj = import_object(what, depth=depth)
+
+    if signature is None:
+        if inspect.isfunction(obj):
+            signature = format_signature(what, obj, skip=skip_args)
+
+        elif inspect.isclass(obj):
+            signature = format_signature(what, obj.__init__, skip=1 + skip_args)
+
+        else:
+            signature = ''
+
+    yield '{} {}'.format('#' * header, what)
+
+    if signature:
+        yield '`{}`'.format(signature)
+
     yield ''
     yield render_docstring(obj)
+
+
+def format_signature(label, func, skip=0):
+    args = inspect.getfullargspec(func)
+    args, varargs, keywords, defaults = args[:4]
+
+    args = args[skip:]
+    if not defaults:
+        defaults = []
+
+    varargs = [] if varargs is None else [varargs]
+    keywords = [] if keywords is None else [keywords]
+
+    args = (
+        ['{}'.format(arg) for arg in args[:len(defaults)]] +
+        ['{}={!r}'.format(arg, default) for arg, default in zip(args[-len(defaults):], defaults)] +
+        ['*{}'.format(arg) for arg in varargs] +
+        ['**{}'.format(arg) for arg in keywords]
+    )
+
+    return '{}({})'.format(label.strip(), ', '.join(args))
+
+
+def literalinclude(line, source):
+    _, what = line.split('::')
+    what = what.strip()
+
+    what = os.path.abspath(os.path.join(os.path.dirname(source), what))
+    _, ext = os.path.splitext(what)
+
+    type_map = {
+        '.py': 'python',
+        '.sh': 'bash',
+    }
+
+    with open(what, 'r') as fobj:
+        content = fobj.read()
+
+    yield '```' + type_map.get(ext.lower(), '')
+    yield content
+    yield '```'
+
+
+def include(line, source):
+    _, what = line.split('::')
+    what = what.strip()
+
+    what = os.path.abspath(os.path.join(os.path.dirname(source), what))
+
+    with open(what, 'r') as fobj:
+        content = fobj.read()
+
+    yield content
 
 
 def render_docstring(obj):
@@ -87,7 +219,12 @@ class MarkdownWriter(Writer):
 
     def _translate(self, node):
         func = '_translate_{}'.format(type(node).__name__)
-        func = getattr(self, func)
+        try:
+            func = getattr(self, func)
+
+        except AttributeError:
+            raise NotImplementedError('cannot translate %r (%r)' % (node, node.astext()))
+
         return func(node)
 
     def _translate_children(self, node):
@@ -113,16 +250,67 @@ class MarkdownWriter(Writer):
     def _translate_literal(self, node):
         yield '`{}`'.format(node.astext())
 
-    def _translate_field_name(self, node):
-        yield '**{}** '.format(node.astext())
+    def _translate_field_list(self, node):
+        by_section = {}
 
-    _translate_field_list = _translate_field = _translate_field_body = _translate_children
+        for c in node.children:
+            name, body = c.children
+            parts = name.astext().split()
+            section, *parts = parts
+
+            body = ''.join(self._translate_children(body))
+            body.strip()
+            body = '\n'.join('  ' + line for line in body.splitlines())
+            body = body.rstrip()
+
+            if section in {'param', 'ivar'}:
+                if len(parts) == 2:
+                    type, name = parts
+
+                elif len(parts) == 1:
+                    name, = parts
+                    type = 'any'
+
+                else:
+                    raise RuntimeError()
+
+                value = f'* **{name}** (*{type}*):\n{body}\n'
+
+            elif section == 'returns':
+                value = '{body}\n'
+
+            else:
+                raise NotImplementedError('unknown section %s' % section)
+
+            by_section.setdefault(section, []).append(value)
+
+        known_sections = ['param', 'returns', 'ivar']
+        section_titles = {'param': 'Parameters', 'returns': 'Returns', 'ivar': 'Instance variables'}
+
+        for key in known_sections:
+            if key in by_section:
+                yield f'#### {section_titles[key]}\n\n'
+
+                for item in by_section[key]:
+                    yield f'{item}'
+
+                yield '\n'
+
+        unknown_sections = set(by_section) - set(known_sections)
+        if unknown_sections:
+            raise ValueError('unknown sections %s' % unknown_sections)
+
+    def _translate_TitledReference(self, node):
+        yield '[{0}](#{1})'.format(
+            node.attributes['title'],
+            node.attributes['reference'].replace('.', '').lower(),
+        )
 
 
 def unindent(doc):
     def impl():
         lines = doc.splitlines()
-        indent = find_indet(lines)
+        indent = find_indent(lines)
 
         if lines:
             yield lines[0]
@@ -133,7 +321,7 @@ def unindent(doc):
     return '\n'.join(impl())
 
 
-def find_indet(lines):
+def find_indent(lines):
     for line in lines[1:]:
         if not line.strip():
             continue
@@ -143,13 +331,23 @@ def find_indet(lines):
     return 0
 
 
-def import_object(what):
-    mod, _, what = what.rpartition('.')
-    mod = mod.strip()
-    what = what.strip()
+def import_object(what, depth=1):
+    parts = what.split('.')
 
-    mod = importlib.import_module(mod)
-    return getattr(mod, what)
+    if depth > 0:
+        mod = '.'.join(parts[:-depth]).strip()
+        what = parts[-depth:]
+
+    else:
+        mod = '.'.join(parts).strip()
+        what = []
+
+    obj = importlib.import_module(mod)
+
+    for p in what:
+        obj = getattr(obj, p)
+
+    return obj
 
 
 if __name__ == "__main__":
