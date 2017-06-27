@@ -3,9 +3,9 @@
 Often data processing involves multiple transformations of data into more and
 more complex objects.
 
-Python offers a number of utility functions for lists, like ``map``, 
+Python offers a number of utility functions for lists, like ``map``,
 ``filter``, and ``reduce``. For example say you wanted to compute the square
-root  of the sum the square of all even numbers between 0 and 99. In terms of 
+root  of the sum the square of all even numbers between 0 and 99. In terms of
 said utility functions you can express this operation as
 
 ```python
@@ -40,22 +40,22 @@ data = range(100)
 transform(data)
 ```
 
-[`tztz.chained`](#tztz.chained) represents the application of multiple 
+[`tztz.chained`](#tztzchained) represents the application of multiple
 functions, one after the other, and the curried namespace of [toolz][toolz]
 allows to bind the first argument of said utility functions without executing
 them immediately.
 
-The second variant arguably simplifies the structure of the program and has to 
-additional benefit of being easier to compose. ``transform`` can easily be 
+The second variant arguably simplifies the structure of the program and has to
+additional benefit of being easier to compose. ``transform`` can easily be
 placed into larger chains of transformations without having to be changed.
 Finally, the second variant separates definition of the operations from
 the execution. This way the operations can be reinterpreted, i.e., for parallel
 execution.
 
 
-`tztz` can reinterpret many existing elements of computation graphs to be 
-executed on top of dask bags. Applying the transformation to a `dask.bag.Bag` 
-is a simple matter of calling [`tztz.apply`](#tztz.apply) and calling 
+`tztz` can reinterpret many existing elements of computation graphs to be
+executed on top of dask bags. Applying the transformation to a `dask.bag.Bag`
+is a simple matter of calling [`tztz.apply`](#tztzapply) and calling
 `.compute()` on the result:
 
 ```python
@@ -75,7 +75,7 @@ cluster becomes a matter of simply writing::
     print(result.compute(get=client.get))
 
 The DAG primitives that are understood can easily be adapted by specifying the
-``rules`` argument to :func:`flowly.dsk.apply`. Out of the box, the following
+``rules`` argument to [apply](#tztzapply). Out of the box, the following
 DAG primitives are supported:
 
 

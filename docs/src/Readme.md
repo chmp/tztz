@@ -2,13 +2,13 @@
 
 Various helpers to simplify using [toolz][toolz]. Features include:
 
-- execute toolz functionality on top of dask bag to parallelize data analysis 
+- execute toolz functionality on top of dask bag to parallelize data analysis
 - more to come ...
 
 [toolz]: http://toolz.readthedocs.io/en/latest/
 
 
-See [docs/Api.md](docs/Api.md) for a guide on `tztz`. 
+See [docs/Api.md](docs/Api.md) for a guide on `tztz`.
 
 ## Development
 
