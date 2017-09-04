@@ -83,14 +83,14 @@ DAG primitives are supported:
 
 # Reference
 
-###  tztz.apply
+### `tztz.apply`
 `tztz.apply()`
 
 Apply the given transformation to a `dask.bag.Bag`.
 
 
 
-###  tztz.chained
+### `tztz.chained`
 `tztz.chained(*funcs)`
 
 Represent the composition of functions.
@@ -118,14 +118,14 @@ a = math.cos(a)
 
 
 
-###  tztz.mean
+### `tztz.mean`
 `tztz.mean()`
 
 Calculate the mean of a list of values.
 
 
 
-###  tztz.repartition
+### `tztz.repartition`
 `tztz.repartition()`
 
 Express repartition of a `dask.bag.Bag`, for non bags it is a nop-op.
@@ -137,7 +137,7 @@ Express repartition of a `dask.bag.Bag`, for non bags it is a nop-op.
 
 
 
-###  tztz.var
+### `tztz.var`
 `tztz.var(*args, **kwargs)`
 
 <undocumented>

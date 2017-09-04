@@ -18,11 +18,14 @@ Execute tests with:
 python -m pytest tests
 ```
 
-To update, change the source files in the `docs/src` folder and execute:
+To update the docs, grep `md-docs` from [here][dotfiles], change the source
+files in the `docs/src` folder, and execute:
 
 ```bash
-python docs/update_docs.py
+md-docs docs/src .
 ```
+
+[dotfiles]: https://github.com/chmp/dotfiles
 
 ## License
 
